@@ -5,6 +5,7 @@ import com.n4d3sh1k4.security_service.domain.model.users.Role;
 import com.n4d3sh1k4.security_service.domain.repository.PrivilegeRepository;
 import com.n4d3sh1k4.security_service.domain.repository.RoleRepository;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.NonNull;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
@@ -18,7 +19,7 @@ public class DataInitializer implements CommandLineRunner {
     private final PrivilegeRepository privilegeRepository;
 
     @Override
-    public void run(String... args) {
+    public void run(String @NonNull ... args) {
 
         if (roleRepository.count() == 0) {
 
