@@ -22,10 +22,8 @@ public class DataInitializer implements CommandLineRunner {
 
         if (roleRepository.count() == 0) {
 
-            Privilege read = privilegeRepository.save(
-                    new Privilege("USER_READ"));
-            Privilege write = privilegeRepository.save(
-                    new Privilege("USER_WRITE"));
+            Privilege read = privilegeRepository.save(new Privilege("USER_READ"));
+            Privilege write = privilegeRepository.save(new Privilege("USER_WRITE"));
 
             Role userRole = new Role("USER");
             userRole.setPrivileges(List.of(read, write));
@@ -33,6 +31,16 @@ public class DataInitializer implements CommandLineRunner {
 
             Role adminRole = new Role("ADMIN");
             adminRole.setPrivileges(List.of(read, write));
+
+//            User admin = new User();
+//            admin.setUsername(adminUsername);
+//            admin.setEmail(adminEmail);
+//            admin.setPasswordHash(passwordEncoder.encode(adminPassword));
+//            admin.setProvider(AuthProvider.LOCAL);
+//            admin.setEnabled(true);
+//            admin.setAccountNonLocked(true);
+//            admin.setRoles(List.of(adminRole));
+
             roleRepository.save(adminRole);
         }
     }
