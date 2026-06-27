@@ -3,14 +3,12 @@ package com.n4d3sh1k4.security_service.controller;
 import com.n4d3sh1k4.security_service.domain.repository.RoleRepository;
 import com.n4d3sh1k4.security_service.domain.repository.UserRepository;
 import com.n4d3sh1k4.security_service.dto.*;
-import com.n4d3sh1k4.security_service.dto.request_dto.ForgotPasswordRequest;
-import com.n4d3sh1k4.security_service.dto.request_dto.LoginRequest;
-import com.n4d3sh1k4.security_service.dto.request_dto.RegisterRequest;
-import com.n4d3sh1k4.security_service.dto.request_dto.ResetPasswordRequest;
+import com.n4d3sh1k4.security_service.dto.request_dto.*;
 import com.n4d3sh1k4.security_service.jwt.JwtProvider;
 import com.n4d3sh1k4.security_service.security.UserDetailsServiceImpl;
 import com.n4d3sh1k4.security_service.service.AuthService;
 import com.n4d3sh1k4.security_service.service.RefreshTokenService;
+import com.n4d3sh1k4.security_service.service.YandexAuthService;
 import com.n4d3sh1k4.security_service.utils.CookieUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,10 +32,12 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final AuthService authService;
+    private final YandexAuthService  yandexAuthService;
 
-    public AuthController(AuthenticationManager authenticationManager, RefreshTokenService refreshTokenService, UserRepository userRepository, UserDetailsServiceImpl userDetailsService, JwtProvider jwtProvider, UserDetailsServiceImpl userDetailsServiceImpl, PasswordEncoder passwordEncoder, RoleRepository roleRepository, CookieUtils cookieUtils, AuthService authService) {
+    public AuthController(AuthenticationManager authenticationManager, RefreshTokenService refreshTokenService, UserRepository userRepository, UserDetailsServiceImpl userDetailsService, JwtProvider jwtProvider, UserDetailsServiceImpl userDetailsServiceImpl, PasswordEncoder passwordEncoder, RoleRepository roleRepository, CookieUtils cookieUtils, AuthService authService, YandexAuthService yandexAuthService) {
         this.authenticationManager = authenticationManager;
         this.authService = authService;
+        this.yandexAuthService = yandexAuthService;
     }
 
     @Operation(summary = "Регистрация пользователей", description = "Позволяет добавить пользователя в систему. После регистрации возвращает клиенту пару ключей авторизации: acces в body и refresh в куки.")
@@ -47,12 +47,14 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/confirm")
+    @Operation(summary = "Эндпоинт подтверждения почты пользователя", description = "Позволяет пользователю \"активировать\" свой аккаунт при переходе по ссылке")
+    @GetMapping("/confirm-email")
     public ResponseEntity<?> confirmRegistration(@RequestParam("token") String token) {
         authService.activateUser(token);
         return ResponseEntity.ok().build();
     }
 
+    @Operation(summary = "Повторная отправка сообщения дла активации акканут на почту пользователя", description = "Позволяет пользователю переотправить ссылку на почту для \"активировации\" аккаунта")
     @PostMapping("/resend-confirmation")
     public ResponseEntity<?> resendToken(@RequestParam("email") String email) {
         authService.resendConfirmToken(email);
@@ -106,5 +108,23 @@ public class AuthController {
     public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request.getToken(), request.getNewPassword());
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/yandex-mobile")
+    public ResponseEntity<?> yandexMobile(@RequestBody YandexMobileTokenRequest request) {
+        AuthServiceResult result = yandexAuthService.authenticateMobile(request.getAccessToken());
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, result.getCookie())
+                .body(new JwtResponse(result.getAccesToken()));
+    }
+
+    @Operation(summary = "Привязка соцсети", description = "Привязывает соцсеть к аккаунту после ввода пароля.")
+    @PostMapping("/link-social")
+    public ResponseEntity<?> linkSocial(@Valid @RequestBody LinkSocialRequest request) {
+        AuthServiceResult result = authService.linkSocialAccount(request);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, result.getCookie())
+                .body(new JwtResponse(result.getAccesToken()));
     }
 }
