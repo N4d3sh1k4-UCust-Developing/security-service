@@ -2,9 +2,12 @@ package com.n4d3sh1k4.security_service.service;
 
 import com.n4d3sh1k4.security_service.domain.model.users.AuthProvider;
 import com.n4d3sh1k4.security_service.domain.model.users.User;
+import com.n4d3sh1k4.security_service.domain.model.users.UserIdentity;
 import com.n4d3sh1k4.security_service.domain.repository.RoleRepository;
+import com.n4d3sh1k4.security_service.domain.repository.UserIdentityRepository;
 import com.n4d3sh1k4.security_service.domain.repository.UserRepository;
 import com.n4d3sh1k4.security_service.dto.event.UserRegisteredInternalEvent;
+import com.n4d3sh1k4.security_service.exception.OAuthEmailAlreadyExistsException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,36 +23,42 @@ public class UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final UserIdentityRepository userIdentityRepository;
 
     @Transactional
-    public User processOAuthPostLogin(String email, String firstName, String lastName) {
-        return userRepository.findByEmail(email)
-            .map(user -> {
-                log.info("OAuth login for existing user: {}", email);
-                return user;
-            })
-            .orElseGet(() -> {
-                log.info("Creating new user via Yandex OAuth: {}", email);
+    public User processOAuthPostLogin(AuthProvider provider, String providerUserId, String email, String firstName, String lastName, String phone) {
+        return userIdentityRepository.findByProviderAndProviderUserId(provider, providerUserId)
+                .map(UserIdentity::getUser)
+                .orElseGet(() -> {
+                    if (userRepository.findByEmail(email).isPresent()) {
+                        throw new OAuthEmailAlreadyExistsException(email, provider, providerUserId);
+                    }
 
-                User newUser = new User();
-                newUser.setEmail(email);
-                newUser.setPasswordHash(null);
+                    User newUser = new User();
+                    newUser.setEmail(email.toLowerCase());
+                    newUser.setPasswordHash(null);
+                    newUser.setEnabled(true);
+                    newUser.setRoles(roleRepository.findByName("USER"));
+                    userRepository.save(newUser);
 
-                newUser.setEnabled(true);
-                newUser.setAccountNonLocked(true);
+                    UserIdentity identity = new UserIdentity();
+                    identity.setUser(newUser);
+                    identity.setProvider(provider);
+                    identity.setProviderUserId(providerUserId);
+                    userIdentityRepository.save(identity);
 
-                newUser.setProvider(AuthProvider.YANDEX);
-                newUser.setRoles(roleRepository.findByName("USER"));
-                userRepository.save(newUser);
+                    String finalFirstName = (firstName != null && !firstName.isBlank()) ? firstName.trim() : email.split("@")[0];
+                    String finalLastName = (lastName != null && !lastName.isBlank()) ? lastName.trim() : "";
 
-                eventPublisher.publishEvent(new UserRegisteredInternalEvent(
-                        newUser.getId(),
-                        firstName,
-                        lastName,
-                        newUser.getEmail()
-                ));
+                    eventPublisher.publishEvent(new UserRegisteredInternalEvent(
+                            newUser.getId(),
+                            newUser.getEmail(),
+                            finalFirstName,
+                            finalLastName,
+                            phone
+                    ));
 
-                return newUser;
-            });
+                    return newUser;
+                });
     }
 }

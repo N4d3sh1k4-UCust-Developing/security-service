@@ -21,7 +21,6 @@ import java.util.UUID;
 public class RefreshTokenService {
 
     private final RefreshTokenRepository refreshTokenRepository;
-    private final UserRepository userRepository;
 
     public Optional<RefreshToken> findByToken(String token) {
         return refreshTokenRepository.findByToken(token);
@@ -44,9 +43,9 @@ public class RefreshTokenService {
         refreshToken.setUser(user);
         refreshToken.setToken(UUID.randomUUID().toString());
 
-        // Выставляем expiryDate в зависимости от флага
         Instant expiry = rememberMe ? Instant.now().plus(30, ChronoUnit.DAYS) : Instant.now().plus(1, ChronoUnit.DAYS);
         refreshToken.setExpiryDate(expiry);
+        refreshToken.setRememberMe(rememberMe);
 
         return refreshTokenRepository.save(refreshToken);
     }
