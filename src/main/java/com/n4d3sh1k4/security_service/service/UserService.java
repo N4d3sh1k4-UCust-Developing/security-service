@@ -55,7 +55,6 @@ public class UserService {
                             finalLastName,
                             phone
                     ));
-
                     return newUser;
                 });
     }
