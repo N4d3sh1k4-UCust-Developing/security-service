@@ -6,6 +6,7 @@ import com.n4d3sh1k4.security_service.dto.event.AccountLockedMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
 import org.springframework.security.authentication.event.AuthenticationFailureBadCredentialsEvent;
 import org.springframework.stereotype.Component;
@@ -17,6 +18,9 @@ import java.time.Instant;
 @RequiredArgsConstructor
 @Slf4j
 public class AuthenticationFailureListener {
+
+    @Value("account.locked.cooldown")
+    String accountLockedCooldown;
 
     private final UserRepository userRepository;
     private final RabbitTemplate rabbitTemplate;
@@ -41,12 +45,12 @@ public class AuthenticationFailureListener {
 
     private void lockUser(User user) {
         user.setAccountNonLocked(false);
-        user.setLockTime(Instant.now().plus(Duration.ofMinutes(10)));
+        user.setLockTime(Instant.now().plus(Duration.ofMinutes(Long.parseLong(accountLockedCooldown))));
         userRepository.save(user);
 
         log.error("User {} is locked due to too many failed attempts", user.getEmail());
 
         rabbitTemplate.convertAndSend("user-exchange", "user.account.locked",
-            new AccountLockedMessage(user.getEmail(), Instant.now()));
+            new AccountLockedMessage(user.getEmail(), Instant.now(), accountLockedCooldown));
     }
 }

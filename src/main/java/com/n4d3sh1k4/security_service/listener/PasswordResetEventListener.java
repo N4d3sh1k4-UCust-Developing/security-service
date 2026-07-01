@@ -20,7 +20,7 @@ public class PasswordResetEventListener {
     public void handlePasswordReset(PasswordResetEvent event) {
         log.info("Transaction committed. Sending event to RabbitMQ for user: {}", event.email());
 
-        PasswordResetMessage message = new PasswordResetMessage(event.email(), event.token());
+        PasswordResetMessage message = new PasswordResetMessage(event.email(), event.token(), event.passwordResetTokenTtl());
 
         rabbitTemplate.convertAndSend("user-exchange", "user.password.reset", message);
     }

@@ -39,8 +39,17 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthService {
 
-    @Value("${email.resend.activated.time}")
-    String emailResendActivatedTime;
+    @Value("token.activation.activate")
+    String accountActivationTokenTtl;
+
+    @Value("token.activation.resend")
+    String accountActivationResendTokenTtl;
+
+    @Value("token.password.reset")
+    String passwordResetTokenTtl;
+
+    @Value("email.send.cooldown")
+    String accountActivationEmailResendCooldown;
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -76,7 +85,7 @@ public class AuthService {
         VerificationToken verificationToken = new VerificationToken();
         verificationToken.setUser(user);
         verificationToken.setToken(tokenValue);
-        verificationToken.setExpiryDate(Instant.now().plus(Duration.ofHours(1)));
+        verificationToken.setExpiryDate(Instant.now().plus(Duration.ofMinutes(Long.parseLong(accountActivationTokenTtl))));
         verificationTokenRepository.save(verificationToken);
 
         eventPublisher.publishEvent(new UserRegisteredInternalEvent(
@@ -90,7 +99,8 @@ public class AuthService {
         eventPublisher.publishEvent(new NotificationEmailEvent(
                 user.getEmail(),
                 req.getFirstName() + " " +  req.getLastName(),
-                tokenValue
+                tokenValue,
+                accountActivationTokenTtl
         ));
     }
 
@@ -127,7 +137,7 @@ public class AuthService {
                 throw new TokenCreationException("The old activation token exists, but its creation date is NULL.");
             }
 
-            if (token.getCreatedAt().isAfter(LocalDateTime.now().minusMinutes(Integer.parseInt(emailResendActivatedTime)))) {
+            if (token.getCreatedAt().isAfter(LocalDateTime.now().minusMinutes(Integer.parseInt(accountActivationEmailResendCooldown)))) {
                 throw new TooManyRequestsException("Too fast!");
             }
         });
@@ -138,13 +148,14 @@ public class AuthService {
         VerificationToken verificationToken = new VerificationToken();
         verificationToken.setUser(user);
         verificationToken.setToken(tokenValue);
-        verificationToken.setExpiryDate(Instant.now().plus(Duration.ofHours(1)));
+        verificationToken.setExpiryDate(Instant.now().plus(Duration.ofMinutes(Long.parseLong(accountActivationResendTokenTtl))));
         verificationTokenRepository.save(verificationToken);
 
         eventPublisher.publishEvent(new NotificationEmailEvent(
                 user.getEmail(),
                 null,
-                tokenValue
+                tokenValue,
+                accountActivationTokenTtl
         ));
 
         log.info("Resent confirmation token to: {}", email);
@@ -220,7 +231,7 @@ public class AuthService {
                 .orElseThrow(() -> new UserNotFoundException("User with this email not found."));
 
         passwordResetTokenRepository.findByUser(user).ifPresent(token -> {
-            if (token.getCreatedAt().isAfter(LocalDateTime.now().minusMinutes(5))) {
+            if (token.getCreatedAt().isAfter(LocalDateTime.now().minusMinutes(Long.parseLong(accountActivationEmailResendCooldown)))) {
                 throw new TooManyRequestsException("Too fast!");
             }
         });
@@ -233,10 +244,10 @@ public class AuthService {
         PasswordResetToken myToken = new PasswordResetToken();
         myToken.setToken(token);
         myToken.setUser(user);
-        myToken.setExpiryDate(LocalDateTime.now().plusMinutes(15));
+        myToken.setExpiryDate(LocalDateTime.now().plusMinutes(Long.parseLong(passwordResetTokenTtl)));
         passwordResetTokenRepository.save(myToken);
 
-        eventPublisher.publishEvent(new PasswordResetEvent(user.getEmail(), token));
+        eventPublisher.publishEvent(new PasswordResetEvent(user.getEmail(), token, passwordResetTokenTtl));
     }
 
     @Transactional

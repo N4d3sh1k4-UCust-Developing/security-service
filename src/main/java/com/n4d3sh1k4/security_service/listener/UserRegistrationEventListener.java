@@ -5,6 +5,7 @@ import com.n4d3sh1k4.security_service.dto.event.UserRegisteredInternalEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -13,6 +14,9 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 @Slf4j
 public class UserRegistrationEventListener {
+
+    @Value("token.activation.activate")
+    String accountActivationTokenTtl;
 
     private final RabbitTemplate rabbitTemplate;
 

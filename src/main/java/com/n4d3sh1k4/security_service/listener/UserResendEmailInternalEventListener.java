@@ -16,12 +16,11 @@ public class UserResendEmailInternalEventListener {
 
     private final RabbitTemplate rabbitTemplate;
 
-    //фаза AFTER_COMMIT
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleUserRegistration(NotificationEmailEvent event) {
         log.info("Transaction committed. Sending event to RabbitMQ for user: {}", event.email());
 
-        NotificationEmailMessage rabbitEvent = new NotificationEmailMessage(event.email(), event.username(), event.token());
+        NotificationEmailMessage rabbitEvent = new NotificationEmailMessage(event.email(), event.username(), event.token(), event.accountActivationTokenTtl());
 
         rabbitTemplate.convertAndSend("user-exchange", "user.registration.email", rabbitEvent);
     }
