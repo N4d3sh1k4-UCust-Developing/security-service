@@ -28,6 +28,9 @@ spring:
 app:
   oauth2:
     redirect-uri: "http://localhost:8100/api/v0/login/oauth2/code/{registrationId}"
+  default-admin:
+    email: ${DEFAULT_ADMIN_EMAIL:admin@email.nl}
+    password: ${DEFAULT_ADMIN_PASSWORD:123456nl}
 
 server:
   port: 8101
