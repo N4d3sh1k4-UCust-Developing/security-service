@@ -27,6 +27,7 @@ public class RegisterRequest {
              message = "The surname must be in Cyrillic and may contain a hyphen.")
     private String lastName;
 
+    @Schema(description = "Email пользователя", example = "user@example.com")
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")
     @Size(max = 50)

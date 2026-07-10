@@ -110,6 +110,8 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 
+    @Operation(summary = "Авторизация через Яндекс (мобильное приложение)",
+               description = "Принимает access token от Яндекс OAuth и возвращает JWT токены.")
     @PostMapping("/yandex-mobile")
     public ResponseEntity<?> yandexMobile(@RequestBody YandexMobileTokenRequest request) {
         AuthServiceResult result = yandexAuthService.authenticateMobile(request.getAccessToken());

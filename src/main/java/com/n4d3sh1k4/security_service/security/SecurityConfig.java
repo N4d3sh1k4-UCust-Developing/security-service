@@ -73,13 +73,10 @@ public class SecurityConfig {
     @Bean
     public OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest> accessTokenResponseClient() {
         RestClientAuthorizationCodeTokenResponseClient tokenResponseClient = new RestClientAuthorizationCodeTokenResponseClient();
-
         tokenResponseClient.addParametersConverter(grantRequest -> {
             MultiValueMap<String, String> extraParams = new LinkedMultiValueMap<>();
-
             if ("vk".equalsIgnoreCase(grantRequest.getClientRegistration().getRegistrationId())) {
                 ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-
                 if (attributes != null) {
                     HttpServletRequest request = attributes.getRequest();
                     String deviceId = request.getParameter("device_id");
@@ -88,7 +85,6 @@ public class SecurityConfig {
                         extraParams.add("device_id", deviceId);
                     }
                 }
-
                 extraParams.add("grant_type", "authorization_code");
             }
             return extraParams;

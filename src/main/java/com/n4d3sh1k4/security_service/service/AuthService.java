@@ -39,16 +39,16 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthService {
 
-    @Value("token.activation.activate")
+    @Value("${token.activation.activate.ttl}")
     String accountActivationTokenTtl;
 
-    @Value("token.activation.resend")
+    @Value("${token.activation.resend.ttl}")
     String accountActivationResendTokenTtl;
 
-    @Value("token.password.reset")
+    @Value("${token.password.reset.ttl}")
     String passwordResetTokenTtl;
 
-    @Value("email.send.cooldown")
+    @Value("${email.send.cooldown}")
     String accountActivationEmailResendCooldown;
 
     private final UserRepository userRepository;
