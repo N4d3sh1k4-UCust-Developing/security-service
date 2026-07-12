@@ -8,6 +8,7 @@ import com.n4d3sh1k4.security_service.domain.model.users.User;
 import com.n4d3sh1k4.security_service.domain.model.users.UserIdentity;
 import com.n4d3sh1k4.security_service.domain.repository.*;
 import com.n4d3sh1k4.security_service.dto.AuthServiceResult;
+import com.n4d3sh1k4.security_service.dto.event.LoginEvent;
 import com.n4d3sh1k4.security_service.dto.event.NotificationEmailEvent;
 import com.n4d3sh1k4.security_service.dto.event.PasswordResetEvent;
 import com.n4d3sh1k4.security_service.dto.event.UserRegisteredInternalEvent;
@@ -19,6 +20,7 @@ import com.n4d3sh1k4.security_service.utils.CookieUtils;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
@@ -65,6 +67,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
 
     private final ApplicationEventPublisher eventPublisher;
+    private final RabbitTemplate rabbitTemplate;
 
 
     @Transactional
@@ -161,7 +164,7 @@ public class AuthService {
         log.info("Resent confirmation token to: {}", email);
     }
 
-    public AuthServiceResult loginUser(LoginRequest req) {
+    public AuthServiceResult loginUser(LoginRequest req, String ipAddress, String userAgent) {
         User user = userRepository.findByEmail(req.getEmail())
             .orElseThrow(() -> new ContentNotFoundException("User not found"));
 
@@ -179,6 +182,9 @@ public class AuthService {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        rabbitTemplate.convertAndSend("user-exchange", "user.login.email",
+                new LoginEvent(user.getEmail(), ipAddress, userAgent, Instant.now()));
 
         return new AuthServiceResult(
                 jwtProvider.generateAccessToken(user),

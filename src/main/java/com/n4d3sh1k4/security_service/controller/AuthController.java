@@ -12,6 +12,7 @@ import com.n4d3sh1k4.security_service.service.YandexAuthService;
 import com.n4d3sh1k4.security_service.utils.CookieUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -64,10 +65,17 @@ public class AuthController {
 
     @Operation(summary = "Авторизация пользователей", description = "Позволяет авторизоваться пользователю в системе. После авторизации возвращает клиенту пару ключей авторизации: acces в body и refresh в куки.")
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletRequest request) {
         Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        AuthServiceResult result = authService.loginUser(loginRequest);
+
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isBlank()) {
+            ip = request.getRemoteAddr();
+        }
+        String userAgent = request.getHeader("User-Agent");
+
+        AuthServiceResult result = authService.loginUser(loginRequest, ip, userAgent);
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, result.getCookie())
                 .body(new JwtResponse(result.getAccesToken()));

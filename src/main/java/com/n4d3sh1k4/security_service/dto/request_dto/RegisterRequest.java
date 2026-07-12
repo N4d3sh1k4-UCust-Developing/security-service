@@ -1,5 +1,6 @@
 package com.n4d3sh1k4.security_service.dto.request_dto;
 
+import com.n4d3sh1k4.security_service.dto.validation.ForeignEmail;
 import com.n4d3sh1k4.security_service.dto.validation.PasswordMatch;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
@@ -30,6 +31,7 @@ public class RegisterRequest {
     @Schema(description = "Email пользователя", example = "user@example.com")
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")
+    @ForeignEmail
     @Size(max = 50)
     private String email;
 
