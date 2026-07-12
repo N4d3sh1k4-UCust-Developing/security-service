@@ -50,6 +50,10 @@ logging:
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
     root: INFO
     org.springframework.web: DEBUG
+    org.springframework.web.filter.CommonsRequestLoggingFilter: DEBUG
+    org.springframework.security: TRACE
+    org.springframework.security.oauth2: TRACE
+    org.springframework.security.web: TRACE
 
 management:
   endpoints:
